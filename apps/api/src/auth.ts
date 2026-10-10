@@ -3,23 +3,12 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { emailOTP } from 'better-auth/plugins';
 import { expo } from '@better-auth/expo';
-import { createTransport } from 'nodemailer';
 import { schema, type Database } from '@portl/database';
 import type { Config } from './config.js';
+import { createOtpDelivery, type OtpDelivery } from './email.js';
 
-export function createAuth(
-  db: Database,
-  config: Config,
-  deliverCode?: (email: string, otp: string) => Promise<void>,
-) {
-  const mail = createTransport({
-    host: config.SMTP_HOST,
-    port: config.SMTP_PORT,
-    secure: config.SMTP_PORT === 465,
-    requireTLS: config.NODE_ENV === 'production' && config.SMTP_PORT !== 465,
-    connectionTimeout: 10000,
-    auth: config.SMTP_USER ? { user: config.SMTP_USER, pass: config.SMTP_PASSWORD } : undefined,
-  });
+export function createAuth(db: Database, config: Config, deliverCode?: OtpDelivery) {
+  const deliver = deliverCode ?? createOtpDelivery(config);
   return betterAuth({
     appName: 'Portl',
     baseURL: config.API_URL,
@@ -53,13 +42,7 @@ export function createAuth(
         allowedAttempts: 5,
         storeOTP: 'hashed',
         async sendVerificationOTP({ email, otp }) {
-          if (deliverCode) return deliverCode(email, otp);
-          await mail.sendMail({
-            from: config.EMAIL_FROM,
-            to: email,
-            subject: 'Your Portl sign-in code',
-            text: `Your Portl code is ${otp}. It expires in 5 minutes. If you did not request this, you can ignore this email.`,
-          });
+          await deliver(email, otp);
         },
       }),
     ],
