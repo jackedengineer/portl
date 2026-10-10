@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+coverage/
+.expo/
+*.tsbuildinfo
+*.log
+.DS_Store
+apps/mobile/ios/
+apps/mobile/android/
+# Architecture and planning references live in /workspace/portl-reference.
+spec.md
+plan.md

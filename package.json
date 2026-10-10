@@ -1,0 +1,29 @@
+{
+  "name": "portl",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @portl/mobile start",
+    "dev:api": "pnpm --filter @portl/api dev",
+    "web": "pnpm --filter @portl/mobile web",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm --filter @portl/mobile lint",
+    "test": "vitest run",
+    "build:api": "pnpm --filter @portl/api build",
+    "db:generate": "pnpm --filter @portl/database generate",
+    "db:migrate": "pnpm --filter @portl/database migrate",
+    "db:seed": "pnpm --filter @portl/api seed"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.14",
+    "@types/node": "^24.0.0",
+    "@types/supertest": "^6.0.3",
+    "prettier": "^3.9.9",
+    "supertest": "^7.1.4",
+    "typescript": "~6.0.3",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+
+nodeLinker: hoisted
+
+minimumReleaseAgeExclude:
+  - express@5.3.0
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
