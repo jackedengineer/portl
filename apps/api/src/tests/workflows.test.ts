@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, describe, expect, it } from 'vitest';
+import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { readFile, readdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
@@ -122,6 +122,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await pg.close();
 });
+afterEach(() => vi.restoreAllMocks());
 describe('tenant isolation and role authority', () => {
   it('requires authenticated identity and active assigned role', async () => {
     expect((await request(app).get('/v1/me')).status).toBe(401);
@@ -262,23 +263,26 @@ describe('booking capacity and onboarding', () => {
 describe('OTP sessions and lifecycle controls', () => {
   it('verifies a delivered OTP, creates a real session, and rejects replay', async () => {
     const delivered: string[] = [];
-    const auth = createAuth(
-      db,
-      {
-        NODE_ENV: 'test',
-        PORT: 4000,
-        DATABASE_URL: 'postgresql://test',
-        BETTER_AUTH_SECRET: 'testing-only-secret-with-at-least-32-characters',
-        API_URL: 'http://localhost:4000',
-        WEB_ORIGIN: 'http://localhost:8081',
-        SMTP_HOST: 'localhost',
-        SMTP_PORT: 1025,
-        EMAIL_FROM: 'test@example.com',
-      },
-      async (_email, otp) => {
-        delivered.push(otp);
-      },
-    );
+    const sendEmail = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
+      expect(url).toBe('https://api.resend.com/emails');
+      const message = JSON.parse(options?.body as string);
+      expect(message.to).toEqual(['new-resident@example.com']);
+      expect(message.from).toBe('test@example.com');
+      const code = message.text.match(/Your Portl code is (\d{6})\./)?.[1];
+      expect(code).toBeDefined();
+      delivered.push(code);
+      return Response.json({ id: 'test-email' });
+    });
+    const auth = createAuth(db, {
+      NODE_ENV: 'test',
+      PORT: 4000,
+      DATABASE_URL: 'postgresql://test',
+      BETTER_AUTH_SECRET: 'testing-only-secret-with-at-least-32-characters',
+      API_URL: 'http://localhost:4000',
+      WEB_ORIGIN: 'http://localhost:8081',
+      RESEND_API_KEY: 're_testing_only',
+      EMAIL_FROM: 'test@example.com',
+    });
     const send = await auth.handler(
       new Request('http://localhost:4000/api/auth/email-otp/send-verification-otp', {
         method: 'POST',
@@ -287,6 +291,7 @@ describe('OTP sessions and lifecycle controls', () => {
       }),
     );
     expect(send.status).toBe(200);
+    expect(sendEmail).toHaveBeenCalledOnce();
     expect(delivered[0]).toMatch(/^\d{6}$/);
     const stored = await db.select().from(s.verification);
     expect(stored.every((v) => !v.value.includes(delivered[0]!))).toBe(true);

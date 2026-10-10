@@ -7,11 +7,8 @@ const schema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   API_URL: z.url().default('http://localhost:4000'),
   WEB_ORIGIN: z.url().default('http://localhost:8081'),
-  SMTP_HOST: z.string().min(1),
-  SMTP_PORT: z.coerce.number().default(587),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASSWORD: z.string().optional(),
-  EMAIL_FROM: z.string().min(1),
+  RESEND_API_KEY: z.string().trim().min(1),
+  EMAIL_FROM: z.string().trim().min(1),
   EXPO_ACCESS_TOKEN: z.string().optional(),
 });
 export type Config = z.infer<typeof schema>;
